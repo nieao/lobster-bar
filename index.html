@@ -1,0 +1,2044 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>龙虾梗梗 BAR</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@400;700&display=swap');
+
+  :root {
+    --black: #1a1a1a;
+    --gray-700: #555;
+    --gray-500: #888;
+    --gray-300: #bbb;
+    --gray-100: #e8e8e8;
+    --warm: #c8a882;
+    --warm-light: #e8d5c0;
+    --pixel-bg: #1a1a2e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--pixel-bg);
+    font-family: 'Noto Sans SC', system-ui, sans-serif;
+    color: var(--gray-100);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .header {
+    width: 100%;
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(200,168,130,0.15);
+    backdrop-filter: blur(12px);
+    background: rgba(26,26,46,0.9);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header h1 {
+    font-family: 'Noto Serif SC', Georgia, serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.12em;
+    color: transparent;
+    background: linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #ff6b6b);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: barNeon 4s ease infinite;
+    text-shadow: none;
+    filter: drop-shadow(0 0 8px rgba(255,107,107,0.3));
+    position: relative;
+  }
+  .header h1::after {
+    content: 'BAR';
+    font-family: 'Georgia', serif;
+    font-size: 0.65em;
+    letter-spacing: 0.3em;
+    color: #ff6b6b;
+    text-shadow: 0 0 10px rgba(255,107,107,0.6), 0 0 20px rgba(255,107,107,0.3);
+    margin-left: 6px;
+    vertical-align: super;
+    font-style: italic;
+  }
+  @keyframes barNeon {
+    0%,100% { background-position: 0% 50%; filter: drop-shadow(0 0 8px rgba(255,107,107,0.4)); }
+    25% { background-position: 50% 0%; filter: drop-shadow(0 0 12px rgba(255,217,61,0.4)); }
+    50% { background-position: 100% 50%; filter: drop-shadow(0 0 8px rgba(107,203,119,0.4)); }
+    75% { background-position: 50% 100%; filter: drop-shadow(0 0 12px rgba(77,150,255,0.4)); }
+  }
+  .header .status-bar {
+    display: flex;
+    gap: 16px;
+    font-size: 0.78rem;
+    color: var(--gray-500);
+    align-items: center;
+  }
+  .dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .dot-online { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+  .dot-busy { background: #facc15; box-shadow: 0 0 6px #facc15; }
+  .dot-ws { background: #4a9eff; box-shadow: 0 0 6px #4a9eff; }
+  .dot-off { background: #666; }
+
+  /* 全屏按钮 */
+  .fullscreen-btn {
+    background: rgba(200,168,130,0.12);
+    border: 1px solid rgba(200,168,130,0.2);
+    color: var(--warm);
+    padding: 4px 14px;
+    border-radius: 4px;
+    font-size: 0.73rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.3s;
+  }
+  .fullscreen-btn:hover {
+    background: rgba(200,168,130,0.2);
+    border-color: var(--warm);
+  }
+
+  /* 全屏模式 */
+  body.fullscreen-mode .header,
+  body.fullscreen-mode .bottom-panels { display: none; }
+  body.fullscreen-mode .stage { margin: 0; width: 100vw; max-width: 100vw; height: 100vh; }
+  body.fullscreen-mode #game-canvas {
+    width: 100vw !important; height: 100vh !important;
+    max-width: 100vw !important; max-height: 100vh !important;
+    border: none; border-radius: 0;
+  }
+
+  /* ==================== 路演影院模式 ==================== */
+  .cinema-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: #0a0a14;
+    flex-direction: column;
+    animation: cinemaIn 0.6s cubic-bezier(0.22,1,0.36,1);
+  }
+  .cinema-overlay.show { display: flex; }
+  @keyframes cinemaIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* 舞台灯光 */
+  .cinema-stage-lights {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .cinema-stage-lights::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120%;
+    height: 60%;
+    background: radial-gradient(ellipse at center, rgba(200,168,130,0.06) 0%, transparent 70%);
+  }
+  .cinema-stage-lights .beam {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    opacity: 0.03;
+  }
+  .beam-1 { left: 15%; background: linear-gradient(to bottom, #4a9eff, transparent 80%); transform: rotate(-8deg); }
+  .beam-2 { left: 50%; background: linear-gradient(to bottom, #c8a882, transparent 60%); }
+  .beam-3 { right: 15%; background: linear-gradient(to bottom, #a855f7, transparent 80%); transform: rotate(8deg); }
+
+  /* 粒子画布 */
+  #cinema-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* 关闭按钮 */
+  .cinema-close {
+    position: absolute;
+    top: 20px;
+    right: 28px;
+    z-index: 10;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #aaa;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 1.3rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    backdrop-filter: blur(8px);
+  }
+  .cinema-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+  /* 顶部演讲者条 */
+  .cinema-presenter-bar {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 32px;
+    background: linear-gradient(to bottom, rgba(10,10,20,0.95), rgba(10,10,20,0.7));
+    border-bottom: 1px solid rgba(200,168,130,0.1);
+  }
+  .cinema-presenter-avatar {
+    width: 44px;
+    height: 44px;
+    image-rendering: pixelated;
+    border-radius: 8px;
+    border: 2px solid var(--warm);
+    box-shadow: 0 0 20px rgba(200,168,130,0.2);
+  }
+  .cinema-presenter-info h2 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 1.1rem;
+    color: var(--warm);
+    letter-spacing: 0.05em;
+  }
+  .cinema-presenter-info .sub {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    margin-top: 2px;
+  }
+  .cinema-live-badge {
+    background: #e85040;
+    color: #fff;
+    font-size: 0.65rem;
+    padding: 3px 12px;
+    border-radius: 12px;
+    letter-spacing: 0.15em;
+    font-weight: 700;
+    animation: livePulse 2s ease-in-out infinite;
+  }
+  @keyframes livePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+  .cinema-report-nav {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    color: var(--gray-500);
+    font-size: 0.78rem;
+  }
+  .cinema-report-nav button {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #aaa;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.3s;
+  }
+  .cinema-report-nav button:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  .cinema-report-nav button:disabled { opacity: 0.3; cursor: default; }
+
+  /* 内容主区域 */
+  .cinema-content {
+    flex: 1;
+    position: relative;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 48px;
+    overflow: hidden;
+  }
+
+  /* Markdown 内容卡片 */
+  .cinema-card {
+    width: 100%;
+    max-width: 960px;
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
+    background: rgba(20,20,35,0.85);
+    border: 1px solid rgba(200,168,130,0.12);
+    border-radius: 12px;
+    padding: 48px 56px;
+    box-shadow: 0 0 80px rgba(200,168,130,0.06), 0 32px 64px rgba(0,0,0,0.4);
+    backdrop-filter: blur(16px);
+    animation: cardSlideIn 0.5s cubic-bezier(0.22,1,0.36,1);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(200,168,130,0.15) transparent;
+  }
+  @keyframes cardSlideIn {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .cinema-card .title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 1.8rem;
+    color: #fff;
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+  }
+  .cinema-card .meta {
+    font-size: 0.78rem;
+    color: var(--gray-500);
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(200,168,130,0.08);
+  }
+  .cinema-card .meta .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 10px;
+    background: rgba(200,168,130,0.1);
+    color: var(--warm);
+    font-size: 0.7rem;
+    margin-right: 6px;
+  }
+  .cinema-card .body {
+    font-size: 1rem;
+    line-height: 1.9;
+    color: var(--gray-300);
+  }
+  .cinema-card .body h1, .cinema-card .body h2, .cinema-card .body h3 {
+    font-family: 'Noto Serif SC', serif;
+    color: #fff;
+    margin: 24px 0 12px;
+  }
+  .cinema-card .body h1 { font-size: 1.5rem; }
+  .cinema-card .body h2 { font-size: 1.25rem; color: var(--warm); }
+  .cinema-card .body h3 { font-size: 1.05rem; }
+  .cinema-card .body p { margin-bottom: 14px; }
+  .cinema-card .body ul, .cinema-card .body ol {
+    margin: 12px 0;
+    padding-left: 24px;
+  }
+  .cinema-card .body li { margin-bottom: 6px; }
+  .cinema-card .body code {
+    background: rgba(200,168,130,0.08);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: var(--warm-light);
+  }
+  .cinema-card .body pre {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(200,168,130,0.08);
+    border-radius: 6px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+  .cinema-card .body blockquote {
+    border-left: 3px solid var(--warm);
+    padding: 12px 20px;
+    margin: 16px 0;
+    background: rgba(200,168,130,0.04);
+    color: var(--gray-300);
+    font-style: italic;
+    border-radius: 0 6px 6px 0;
+  }
+  .cinema-card .body strong { color: #fff; }
+  .cinema-card .body a { color: var(--warm); text-decoration: none; border-bottom: 1px solid rgba(200,168,130,0.3); }
+
+  /* 截图画廊 */
+  .cinema-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 16px;
+    padding: 0 12px;
+  }
+  .cinema-images img {
+    max-width: 100%;
+    max-height: 420px;
+    border-radius: 6px;
+    border: 1px solid rgba(200,168,130,0.15);
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+    object-fit: contain;
+    background: rgba(0,0,0,0.3);
+  }
+  .cinema-images img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 32px rgba(200,168,130,0.15);
+  }
+  /* 图片全屏查看 */
+  .cinema-image-fullscreen {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 10000;
+    background: rgba(0,0,0,0.92);
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+  }
+  .cinema-image-fullscreen.show { display: flex; }
+  .cinema-image-fullscreen img {
+    max-width: 95vw;
+    max-height: 95vh;
+    object-fit: contain;
+    border-radius: 4px;
+  }
+
+  /* 空状态 */
+  .cinema-empty {
+    text-align: center;
+    color: var(--gray-700);
+  }
+  .cinema-empty .logo {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 3rem;
+    color: rgba(200,168,130,0.15);
+    margin-bottom: 16px;
+    letter-spacing: 0.1em;
+  }
+  .cinema-empty p {
+    font-size: 0.88rem;
+    line-height: 1.6;
+  }
+
+  /* 底部信息条 */
+  .cinema-footer {
+    position: relative;
+    z-index: 5;
+    padding: 10px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to top, rgba(10,10,20,0.95), rgba(10,10,20,0.7));
+    border-top: 1px solid rgba(200,168,130,0.06);
+    font-size: 0.72rem;
+    color: var(--gray-700);
+  }
+  .cinema-footer .office-name {
+    color: var(--warm);
+    letter-spacing: 0.1em;
+    font-family: 'Noto Serif SC', serif;
+  }
+
+  .stage { position: relative; margin: 20px auto; width: 1280px; max-width: 96vw; }
+
+  #game-canvas {
+    width: 1280px; height: 720px;
+    max-width: 96vw; max-height: 54vw;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border: 2px solid rgba(200,168,130,0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    display: block;
+  }
+
+  .bottom-panels {
+    display: flex;
+    gap: 16px;
+    width: 1280px;
+    max-width: 96vw;
+    margin-bottom: 32px;
+  }
+
+  .panel {
+    background: rgba(42,42,62,0.8);
+    border: 1px solid rgba(200,168,130,0.15);
+    border-radius: 6px;
+    padding: 16px;
+    flex: 1;
+    backdrop-filter: blur(8px);
+  }
+
+  .panel-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.35em;
+    color: var(--warm);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(200,168,130,0.1);
+  }
+
+  /* 会议室报告面板 */
+  .meeting-panel {
+    flex: 2;
+  }
+  .report-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(200,168,130,0.1);
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 10px;
+  }
+  .report-card:hover {
+    border-color: rgba(200,168,130,0.25);
+  }
+  .report-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .report-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .report-title {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--gray-100);
+  }
+  .report-time {
+    font-size: 0.7rem;
+    color: var(--gray-700);
+    margin-left: auto;
+  }
+  .report-content {
+    font-size: 0.78rem;
+    color: var(--gray-500);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    max-height: 80px;
+    overflow: hidden;
+  }
+  .report-tags {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .report-tag {
+    font-size: 0.65rem;
+    padding: 1px 8px;
+    border-radius: 8px;
+    background: rgba(200,168,130,0.1);
+    color: var(--warm);
+  }
+  .report-author {
+    font-size: 0.72rem;
+    color: var(--warm);
+  }
+
+  /* 龙虾列表 */
+  .lobster-list { list-style: none; }
+  .lobster-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  .lobster-list li:hover { background: rgba(200,168,130,0.08); }
+  .lobster-avatar { width: 24px; height: 24px; border-radius: 3px; image-rendering: pixelated; }
+  .lobster-name { font-size: 0.82rem; font-weight: 500; }
+  .lobster-task { font-size: 0.7rem; color: var(--gray-500); }
+  .lobster-stage-badge {
+    font-size: 0.65rem;
+    padding: 1px 8px;
+    border-radius: 8px;
+    letter-spacing: 0.05em;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .s-plan { background: rgba(74,158,255,0.15); color: #4a9eff; }
+  .s-search { background: rgba(250,204,21,0.15); color: #facc15; }
+  .s-code { background: rgba(168,85,247,0.15); color: #a855f7; }
+  .s-test { background: rgba(74,222,128,0.15); color: #4ade80; }
+  .s-deploy { background: rgba(251,146,60,0.15); color: #fb923c; }
+  .s-idle { background: rgba(148,163,184,0.15); color: #94a3b8; }
+
+  .progress-bar {
+    width: 100%; height: 3px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 2px; margin-top: 4px; overflow: hidden;
+  }
+  .progress-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+
+  .activity-log { max-height: 260px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(200,168,130,0.2) transparent; }
+  .log-entry { font-size: 0.73rem; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03); color: var(--gray-500); display: flex; gap: 8px; }
+  .log-time { color: var(--gray-700); min-width: 42px; font-variant-numeric: tabular-nums; }
+  .log-agent { color: var(--warm); min-width: 52px; }
+
+  /* 弹窗 */
+  .popup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 199; }
+  .popup-overlay.show { display: block; }
+  .result-popup {
+    display: none; position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(30,30,50,0.97);
+    border: 1px solid rgba(200,168,130,0.25);
+    border-radius: 8px; padding: 28px;
+    min-width: 440px; max-width: 600px; max-height: 80vh; overflow-y: auto;
+    z-index: 200; backdrop-filter: blur(20px);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  }
+  .result-popup.show { display: block; animation: fadeUp 0.3s cubic-bezier(0.22,1,0.36,1); }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translate(-50%, -46%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+  }
+  .popup-close {
+    position: absolute; top: 10px; right: 14px;
+    background: none; border: none; color: var(--gray-500);
+    font-size: 1.2rem; cursor: pointer;
+  }
+  .popup-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .popup-avatar { width: 48px; height: 48px; image-rendering: pixelated; border-radius: 6px; border: 2px solid var(--warm); }
+  .popup-name { font-family: 'Noto Serif SC', serif; font-size: 1.05rem; color: var(--warm); }
+  .popup-role { font-size: 0.73rem; color: var(--gray-500); margin-top: 2px; }
+  .popup-meta { font-size: 0.75rem; color: var(--gray-500); margin-bottom: 12px; }
+  .popup-reports-title { font-size: 0.78rem; color: var(--warm); margin: 16px 0 8px; letter-spacing: 0.1em; }
+
+  .popup-report-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(200,168,130,0.08);
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .popup-report-item h4 { font-size: 0.82rem; color: var(--gray-100); margin-bottom: 4px; }
+  .popup-report-item p { font-size: 0.73rem; color: var(--gray-500); line-height: 1.5; white-space: pre-wrap; }
+  .popup-report-item .tags { margin-top: 6px; }
+
+  @media (max-width: 768px) {
+    .bottom-panels { flex-direction: column; }
+    .result-popup { min-width: 90vw; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>龙虾梗梗</h1>
+  <div class="status-bar">
+    <span><span class="dot dot-online"></span>在线 <strong id="online-count">0</strong></span>
+    <span><span class="dot dot-busy"></span>工作中 <strong id="busy-count">0</strong></span>
+    <span><span class="dot" id="ws-dot"></span><span id="ws-status">连接中</span></span>
+    <span id="clock">00:00:00</span>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">全屏</button>
+  </div>
+</div>
+
+<div class="stage">
+  <canvas id="game-canvas" width="1280" height="720"></canvas>
+</div>
+
+<div class="bottom-panels">
+  <div class="panel" style="flex:1">
+    <div class="panel-title">在线龙虾（梗战段位）</div>
+    <ul class="lobster-list" id="lobster-list"></ul>
+  </div>
+  <div class="panel meeting-panel">
+    <div class="panel-title">路演台 · 龙虾 Show</div>
+    <div id="reports-list"><div style="color:#555;font-size:0.78rem">暂无报告，等待龙虾加入...</div></div>
+  </div>
+  <div class="panel" style="flex:0.8">
+    <div class="panel-title" style="color:#e85040">梗战实况</div>
+    <div class="activity-log" id="battle-log" style="font-size:0.75rem"></div>
+  </div>
+  <div class="panel" style="flex:0.8">
+    <div class="panel-title">活动日志</div>
+    <div class="activity-log" id="activity-log"></div>
+  </div>
+</div>
+
+<!-- 弹窗 -->
+<div class="popup-overlay" id="popup-overlay"></div>
+<div class="result-popup" id="result-popup">
+  <button class="popup-close" id="popup-close">&times;</button>
+  <div class="popup-header">
+    <canvas class="popup-avatar" id="popup-avatar" width="48" height="48"></canvas>
+    <div>
+      <div class="popup-name" id="popup-name"></div>
+      <div class="popup-role" id="popup-role"></div>
+    </div>
+  </div>
+  <div class="popup-meta" id="popup-meta"></div>
+  <div class="progress-bar"><div class="progress-fill" id="popup-progress" style="width:0;background:var(--warm)"></div></div>
+  <div class="popup-reports-title">提交的报告</div>
+  <div id="popup-reports"></div>
+</div>
+
+<!-- 路演影院模式 -->
+<div class="cinema-overlay" id="cinema-overlay">
+  <div class="cinema-stage-lights">
+    <div class="beam beam-1"></div>
+    <div class="beam beam-2"></div>
+    <div class="beam beam-3"></div>
+  </div>
+  <canvas id="cinema-particles"></canvas>
+  <button class="cinema-close" id="cinema-close">&times;</button>
+
+  <div class="cinema-presenter-bar" id="cinema-bar">
+    <canvas class="cinema-presenter-avatar" id="cinema-avatar" width="44" height="44"></canvas>
+    <div class="cinema-presenter-info">
+      <h2 id="cinema-name">-</h2>
+      <div class="sub" id="cinema-role">-</div>
+    </div>
+    <span class="cinema-live-badge">LIVE</span>
+    <div class="cinema-report-nav">
+      <button id="cinema-prev" disabled>&lt; 上一份</button>
+      <span id="cinema-page">1 / 1</span>
+      <button id="cinema-next" disabled>下一份 &gt;</button>
+    </div>
+  </div>
+
+  <div class="cinema-content" id="cinema-content"></div>
+
+  <div class="cinema-footer">
+    <span class="office-name">龙虾梗梗 BAR</span>
+    <span id="cinema-time"></span>
+    <span>按 ESC 退出 · 路演台 · 龙虾 Show</span>
+  </div>
+</div>
+
+<!-- 弹幕层 -->
+<div id="danmaku-layer" style="
+  position:fixed; top:0; left:0; width:100vw; height:100vh;
+  pointer-events:none; z-index:50; overflow:hidden;
+"></div>
+
+<!-- 攻击特效层 -->
+<div id="attack-overlay" style="
+  display:none; position:fixed; top:0; left:0; width:100vw; height:100vh;
+  pointer-events:none; z-index:60;
+  display:flex; align-items:center; justify-content:center;
+">
+  <div id="attack-text" style="
+    font-size:3rem; font-weight:900; color:#fff; text-shadow:0 0 30px rgba(232,80,64,0.8), 0 0 60px rgba(200,168,130,0.4);
+    animation: attackFlash 1.5s ease-out forwards; white-space:nowrap;
+    font-family:'Noto Serif SC',serif; letter-spacing:0.05em;
+  "></div>
+</div>
+<style>
+  @keyframes attackFlash {
+    0% { transform:scale(0.3) rotate(-5deg); opacity:0; }
+    20% { transform:scale(1.3) rotate(2deg); opacity:1; }
+    40% { transform:scale(1) rotate(0); opacity:1; }
+    100% { transform:scale(1.1); opacity:0; }
+  }
+  .danmaku-item {
+    position:absolute; white-space:nowrap;
+    font-size:1.1rem; font-weight:700;
+    text-shadow:1px 1px 2px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
+    animation: danmakuFly linear forwards;
+    pointer-events:none;
+  }
+  @keyframes danmakuFly {
+    from { transform:translateX(100vw); }
+    to { transform:translateX(-100%); }
+  }
+</style>
+
+<!-- 截图全屏查看 -->
+<div class="cinema-image-fullscreen" id="image-fullscreen" onclick="closeImageFullscreen()">
+  <img id="image-fullscreen-img" src="" alt="截图全屏">
+</div>
+
+<script>
+// ==================== 全局常量 ====================
+const STAGE_COLORS = {
+  plan: '#4a9eff', search: '#facc15', code: '#a855f7',
+  test: '#4ade80', deploy: '#fb923c', idle: '#94a3b8'
+};
+const STAGE_NAMES = {
+  plan: '策划', search: '搜索', code: '编码',
+  test: '测试', deploy: '部署', idle: '待命'
+};
+
+// ==================== 办公室区域（含会议室） ====================
+const ZONES = {
+  plan:    { x: 30,  y: 30,  w: 240, h: 280, label: '策划室',  color: 'rgba(74,158,255,0.07)',  border: 'rgba(74,158,255,0.2)' },
+  meeting: { x: 300, y: 30,  w: 460, h: 290, label: '路演台 · 龙虾 Show',  color: 'rgba(200,168,130,0.06)', border: 'rgba(200,168,130,0.25)' },
+  search:  { x: 790, y: 30,  w: 220, h: 280, label: '搜索区',  color: 'rgba(250,204,21,0.07)',  border: 'rgba(250,204,21,0.2)' },
+  code:    { x: 30,  y: 350, w: 240, h: 220, label: '代码区',  color: 'rgba(168,85,247,0.07)',  border: 'rgba(168,85,247,0.2)' },
+  test:    { x: 300, y: 360, w: 220, h: 220, label: '测试区',  color: 'rgba(74,222,128,0.07)',  border: 'rgba(74,222,128,0.2)' },
+  deploy:  { x: 550, y: 360, w: 220, h: 220, label: '部署区',  color: 'rgba(251,146,60,0.07)',  border: 'rgba(251,146,60,0.2)' },
+  idle:    { x: 800, y: 350, w: 220, h: 220, label: '休息区',  color: 'rgba(148,163,184,0.07)', border: 'rgba(148,163,184,0.2)' },
+};
+
+// ==================== 状态管理 ====================
+let lobsters = [];       // 从服务器同步
+let reports = [];        // 从服务器同步
+let activityLog = [];    // 从服务器同步
+let currentPresenter = null;
+let lobsterAnimStates = {};
+let hoveredLobster = null;
+let frameCount = 0;
+let wsConnected = false;
+let ws = null;
+
+// ==================== Canvas ====================
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+
+function px(x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.floor(x), Math.floor(y), w, h);
+}
+
+function drawText(text, x, y, size, color, align) {
+  ctx.fillStyle = color;
+  ctx.font = `${size}px "Noto Sans SC", sans-serif`;
+  ctx.textAlign = align || 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+}
+
+// ==================== 地板 ====================
+function drawFloor() {
+  const cw = canvas.width, ch = canvas.height;
+  ctx.fillStyle = '#1e1e32';
+  ctx.fillRect(0, 0, cw, ch);
+  const ts = 32;
+  for (let x = 0; x < cw; x += ts) {
+    for (let y = 0; y < ch; y += ts) {
+      ctx.fillStyle = ((x / ts + y / ts) % 2 === 0) ? '#22223a' : '#252540';
+      ctx.fillRect(x, y, ts, ts);
+    }
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.012)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < cw; x += ts) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, ch); ctx.stroke(); }
+  for (let y = 0; y < ch; y += ts) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cw, y); ctx.stroke(); }
+}
+
+// ==================== 区域绘制 ====================
+function drawZones() {
+  Object.entries(ZONES).forEach(([key, z]) => {
+    ctx.fillStyle = z.color;
+    ctx.fillRect(z.x, z.y, z.w, z.h);
+    ctx.strokeStyle = z.border;
+    ctx.lineWidth = key === 'meeting' ? 2 : 1;
+    ctx.strokeRect(z.x + 0.5, z.y + 0.5, z.w - 1, z.h - 1);
+    ctx.fillStyle = z.border;
+    ctx.fillRect(z.x, z.y, z.w, key === 'meeting' ? 3 : 2);
+    drawText(z.label, z.x + z.w / 2, z.y + 18, key === 'meeting' ? 14 : 12, z.border, 'center');
+  });
+}
+
+// ==================== 家具 ====================
+function drawDesk(x, y) {
+  px(x, y + 12, 72, 5, '#6b5a42');
+  px(x + 2, y + 10, 68, 4, '#8b7355');
+  px(x + 8, y + 17, 3, 14, '#5a4a36');
+  px(x + 60, y + 17, 3, 14, '#5a4a36');
+  px(x + 22, y - 14, 30, 14, '#222');
+  px(x + 24, y - 12, 26, 10, '#4a9eff');
+  px(x + 18, y + 4, 20, 3, '#444');
+  px(x + 46, y + 4, 5, 3, '#555');
+}
+
+function drawPlant(x, y) {
+  px(x, y + 12, 14, 8, '#8b5e3c');
+  px(x + 2, y + 10, 10, 3, '#9b6e4c');
+  px(x + 2, y, 3, 12, '#3a7a30');
+  px(x - 3, y + 2, 7, 3, '#4a8b3f');
+  px(x + 9, y + 3, 7, 3, '#4a8b3f');
+  px(x + 2, y - 3, 5, 5, '#5a9b4f');
+}
+
+function drawSofa(x, y) {
+  px(x, y + 6, 80, 20, '#5a3a5a');
+  px(x + 3, y + 2, 74, 6, '#6b4a6b');
+  px(x, y - 2, 80, 6, '#4a2a4a');
+  px(x + 6, y + 10, 30, 12, '#7b5a7b');
+  px(x + 42, y + 10, 30, 12, '#7b5a7b');
+}
+
+function drawCoffeeMachine(x, y) {
+  px(x, y + 14, 24, 3, '#555');
+  px(x + 3, y, 18, 16, '#444');
+  px(x + 5, y + 2, 14, 7, '#333');
+  px(x + 7, y + 3, 3, 3, '#e85040');
+  px(x + 8, y + 16, 7, 5, '#fff');
+}
+
+function drawServerRack(x, y) {
+  px(x, y, 30, 44, '#333');
+  px(x + 2, y + 2, 26, 40, '#2a2a2a');
+  for (let i = 0; i < 4; i++) {
+    const cy = y + 6 + i * 9;
+    px(x + 5, cy, 20, 5, '#1a1a1a');
+    const blink = (frameCount + i * 30) % 60 < 40 ? '#4ade80' : '#2a6b20';
+    px(x + 23, cy + 1, 2, 2, blink);
+  }
+}
+
+function drawWhiteboard(x, y) {
+  px(x, y, 50, 34, '#ddd');
+  px(x + 2, y + 2, 46, 30, '#f5f5f5');
+  px(x + 5, y + 7, 16, 2, '#e85040');
+  px(x + 5, y + 12, 25, 2, '#4a9eff');
+  px(x + 5, y + 17, 12, 2, '#4ade80');
+}
+
+function drawBookshelf(x, y) {
+  px(x, y, 40, 34, '#5a4a36');
+  px(x + 2, y + 2, 36, 3, '#8b7355');
+  px(x + 4, y + 7, 5, 10, '#e85040');
+  px(x + 10, y + 7, 4, 10, '#4a9eff');
+  px(x + 16, y + 7, 6, 10, '#4ade80');
+  px(x + 24, y + 7, 5, 10, '#fb923c');
+  px(x + 2, y + 19, 36, 3, '#8b7355');
+  px(x + 4, y + 24, 7, 8, '#facc15');
+  px(x + 13, y + 24, 5, 8, '#a855f7');
+}
+
+// 会议室投影幕布
+function drawProjectorScreen(x, y, w, h) {
+  // 幕布框架
+  px(x, y - 4, w, 3, '#555');
+  // 幕布
+  px(x + 2, y, w - 4, h, '#1a1a28');
+  px(x + 3, y + 1, w - 6, h - 2, '#222238');
+
+  // 幕布内容：当前演讲者的报告
+  if (currentPresenter) {
+    const presenter = lobsters.find(l => l.id === currentPresenter);
+    const presenterReports = reports.filter(r => r.lobster_id === currentPresenter);
+    const latest = presenterReports[0];
+
+    if (presenter) {
+      // 演讲者名字
+      drawText(presenter.name + ' 正在演讲', x + w / 2, y + 16, 11, '#c8a882', 'center');
+
+      if (latest) {
+        // 报告标题
+        drawText(latest.title, x + w / 2, y + 36, 13, '#fff', 'center');
+
+        // 报告内容（截取前几行）
+        ctx.fillStyle = '#aaa';
+        ctx.font = '10px "Noto Sans SC", sans-serif';
+        ctx.textAlign = 'left';
+        const lines = latest.content.split('\n').slice(0, 6);
+        lines.forEach((line, i) => {
+          const displayLine = line.length > 50 ? line.slice(0, 50) + '...' : line;
+          ctx.fillText(displayLine, x + 12, y + 56 + i * 14);
+        });
+
+        // 标签
+        if (latest.tags && latest.tags.length > 0) {
+          let tx = x + 12;
+          latest.tags.forEach(tag => {
+            const tw = ctx.measureText(tag).width + 12;
+            px(tx, y + h - 22, tw, 14, 'rgba(200,168,130,0.15)');
+            drawText(tag, tx + 6, y + h - 15, 9, '#c8a882', 'left');
+            tx += tw + 6;
+          });
+        }
+
+        // 点击进入提示
+        ctx.globalAlpha = 0.5 + Math.sin(frameCount * 0.04) * 0.3;
+        drawText('[ 点击全屏路演 ]', x + w / 2, y + h - 8, 9, '#c8a882', 'center');
+        ctx.globalAlpha = 1;
+      }
+    }
+  } else {
+    // 待机状态：路演台 Logo
+    drawText('龙虾 SHOW', x + w / 2, y + h / 2 - 12, 18, 'rgba(200,168,130,0.3)', 'center');
+    drawText('等待路演者上台...', x + w / 2, y + h / 2 + 12, 11, '#444', 'center');
+    // 扫描线动画
+    const scanY = y + 4 + (frameCount % 100) * ((h - 8) / 100);
+    ctx.fillStyle = 'rgba(200,168,130,0.04)';
+    ctx.fillRect(x + 4, scanY, w - 8, 2);
+    // 呼吸光晕
+    ctx.fillStyle = `rgba(200,168,130,${0.02 + Math.sin(frameCount * 0.03) * 0.02})`;
+    ctx.beginPath();
+    ctx.arc(x + w / 2, y + h / 2, 40, 0, Math.PI * 2);
+    ctx.fill();
+    // 点击提示
+    ctx.globalAlpha = 0.4 + Math.sin(frameCount * 0.04) * 0.2;
+    drawText('[ 点击进入路演 ]', x + w / 2, y + h - 12, 9, '#666', 'center');
+    ctx.globalAlpha = 1;
+  }
+}
+
+// 会议室长桌
+function drawMeetingTable(x, y) {
+  px(x, y, 200, 10, '#6b5a42');
+  px(x + 4, y - 2, 192, 4, '#8b7355');
+  px(x + 10, y + 10, 4, 14, '#5a4a36');
+  px(x + 186, y + 10, 4, 14, '#5a4a36');
+  // 椅子（上方）
+  for (let i = 0; i < 4; i++) {
+    px(x + 20 + i * 46, y - 14, 18, 10, '#4a3a5a');
+  }
+  // 椅子（下方）
+  for (let i = 0; i < 4; i++) {
+    px(x + 20 + i * 46, y + 26, 18, 10, '#4a3a5a');
+  }
+}
+
+function drawFurniture() {
+  const z = ZONES;
+
+  // 策划室
+  drawDesk(z.plan.x + 30, z.plan.y + 80);
+  drawDesk(z.plan.x + 30, z.plan.y + 160);
+  drawWhiteboard(z.plan.x + 150, z.plan.y + 40);
+  drawPlant(z.plan.x + 200, z.plan.y + 240);
+
+  // 会议室：投影幕 + 长桌
+  drawProjectorScreen(z.meeting.x + 40, z.meeting.y + 40, 380, 140);
+  drawMeetingTable(z.meeting.x + 130, z.meeting.y + 210);
+  drawPlant(z.meeting.x + 20, z.meeting.y + 250);
+  drawPlant(z.meeting.x + 420, z.meeting.y + 250);
+
+  // 搜索区
+  drawDesk(z.search.x + 30, z.search.y + 80);
+  drawBookshelf(z.search.x + 140, z.search.y + 160);
+  drawPlant(z.search.x + 180, z.search.y + 240);
+
+  // 代码区
+  drawDesk(z.code.x + 30, z.code.y + 60);
+  drawDesk(z.code.x + 130, z.code.y + 60);
+  drawServerRack(z.code.x + 180, z.code.y + 140);
+
+  // 测试区
+  drawDesk(z.test.x + 30, z.test.y + 60);
+  drawDesk(z.test.x + 120, z.test.y + 60);
+  drawPlant(z.test.x + 180, z.test.y + 160);
+
+  // 部署区
+  drawDesk(z.deploy.x + 30, z.deploy.y + 60);
+  drawServerRack(z.deploy.x + 150, z.deploy.y + 50);
+  drawServerRack(z.deploy.x + 150, z.deploy.y + 110);
+
+  // 休息区
+  drawSofa(z.idle.x + 30, z.idle.y + 60);
+  drawCoffeeMachine(z.idle.x + 160, z.idle.y + 60);
+  drawPlant(z.idle.x + 30, z.idle.y + 170);
+  drawPlant(z.idle.x + 180, z.idle.y + 170);
+}
+
+// ==================== 龙虾绘制 ====================
+function drawLobster(lobster, x, y, size, facing, bobY, isHovered) {
+  const s = size;
+  const cx = Math.floor(x);
+  const cy = Math.floor(y + bobY);
+  const color = lobster.color || '#e85040';
+  const clawColor = lobster.claw_color || lobster.clawColor || '#ff6b5b';
+  const st = lobsterAnimStates[lobster.id] || { bobOffset: 0 };
+
+  // 阴影
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(cx + s * 0.5, cy + s + 2, s * 0.45, s * 0.15, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 身体
+  px(cx + s * 0.2, cy + s * 0.25, s * 0.6, s * 0.6, color);
+  px(cx + s * 0.25, cy + s * 0.2, s * 0.5, s * 0.65, color);
+
+  // 头部
+  px(cx + s * 0.15, cy + s * 0.1, s * 0.7, s * 0.35, color);
+  px(cx + s * 0.2, cy + s * 0.05, s * 0.6, s * 0.15, color);
+
+  // 眼睛
+  const eyeOff1 = facing > 0 ? s * 0.55 : s * 0.25;
+  const eyeOff2 = facing > 0 ? s * 0.35 : s * 0.45;
+  px(cx + eyeOff1, cy + s * 0.15, s * 0.12, s * 0.12, '#fff');
+  px(cx + eyeOff1 + (facing > 0 ? s * 0.04 : 0), cy + s * 0.17, s * 0.06, s * 0.06, '#111');
+  px(cx + eyeOff2, cy + s * 0.15, s * 0.12, s * 0.12, '#fff');
+  px(cx + eyeOff2 + (facing > 0 ? s * 0.04 : 0), cy + s * 0.17, s * 0.06, s * 0.06, '#111');
+
+  // 触角
+  px(cx + s * 0.25, cy - s * 0.1, s * 0.06, s * 0.18, clawColor);
+  px(cx + s * 0.65, cy - s * 0.1, s * 0.06, s * 0.18, clawColor);
+  px(cx + s * 0.2, cy - s * 0.14, s * 0.06, s * 0.06, clawColor);
+  px(cx + s * 0.7, cy - s * 0.14, s * 0.06, s * 0.06, clawColor);
+
+  // 梗舞动画（钳子大幅摆动 + 屁股扭动）
+  const danceSpeed = 0.15;  // 更快的舞蹈频率
+  const danceAmp = 5;       // 更大的舞蹈幅度
+  const clawAnim = Math.sin(frameCount * danceSpeed + (st.bobOffset || 0)) * danceAmp;
+  const buttWiggle = Math.sin(frameCount * danceSpeed * 1.5 + (st.bobOffset || 0)) * 2;
+
+  // 左钳（大幅挥舞，像在打拳）
+  const leftClawUp = Math.sin(frameCount * danceSpeed * 2 + (st.bobOffset || 0));
+  const leftClawY = cy + s * 0.25 + clawAnim + (leftClawUp > 0.5 ? -s * 0.15 : 0);
+  px(cx - s * 0.1, leftClawY, s * 0.22, s * 0.18, clawColor);
+  px(cx - s * 0.12, leftClawY - s * 0.05, s * 0.12, s * 0.12, clawColor);
+  px(cx + s * 0.02, leftClawY - s * 0.05, s * 0.12, s * 0.12, clawColor);
+
+  // 右钳（交替挥舞）
+  const rightClawUp = Math.sin(frameCount * danceSpeed * 2 + (st.bobOffset || 0) + Math.PI);
+  const rightClawY = cy + s * 0.25 - clawAnim + (rightClawUp > 0.5 ? -s * 0.15 : 0);
+  px(cx + s * 0.88, rightClawY, s * 0.22, s * 0.18, clawColor);
+  px(cx + s * 0.86, rightClawY - s * 0.05, s * 0.12, s * 0.12, clawColor);
+  px(cx + s * 0.98, rightClawY - s * 0.05, s * 0.12, s * 0.12, clawColor);
+
+  // 大屁股尾巴（左右扭动）
+  px(cx + s * 0.25 + buttWiggle, cy + s * 0.8, s * 0.5, s * 0.18, color);
+  px(cx + s * 0.2 + buttWiggle, cy + s * 0.92, s * 0.18, s * 0.1, clawColor);
+  px(cx + s * 0.38 + buttWiggle, cy + s * 0.94, s * 0.24, s * 0.08, clawColor);
+  px(cx + s * 0.62 + buttWiggle, cy + s * 0.92, s * 0.18, s * 0.1, clawColor);
+
+  // 腿（快速踏步舞蹈）
+  for (let i = 0; i < 3; i++) {
+    const legDance = Math.sin(frameCount * danceSpeed * 2 + i * 2.0) * 3;
+    px(cx + s * 0.08, cy + s * 0.55 + i * s * 0.1 + legDance, s * 0.1, s * 0.05, clawColor);
+    px(cx + s * 0.82, cy + s * 0.55 + i * s * 0.1 - legDance, s * 0.1, s * 0.05, clawColor);
+  }
+
+  // 悬停高亮
+  if (isHovered) {
+    ctx.strokeStyle = '#c8a882';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx - 4, cy - s * 0.2, s + 8, s + s * 0.3);
+  }
+
+  // 名字
+  drawText(lobster.name, cx + s * 0.5, cy - s * 0.25, 10, '#fff', 'center');
+
+  // HP 血条
+  const hp = lobster.hp ?? 100;
+  const maxHp = lobster.max_hp ?? 100;
+  const hpRatio = hp / maxHp;
+  const barW = s * 0.7;
+  const barH = 4;
+  const barX = cx + (s - barW) / 2;
+  const barY = cy - s * 0.18;
+  px(barX, barY, barW, barH, 'rgba(0,0,0,0.5)');
+  const hpColor = hpRatio > 0.6 ? '#4ade80' : hpRatio > 0.3 ? '#facc15' : '#e85040';
+  px(barX, barY, barW * hpRatio, barH, hpColor);
+
+  // KDA 统计（有击杀/死亡时显示）
+  if ((lobster.kills || 0) + (lobster.deaths || 0) > 0) {
+    drawText(`${lobster.kills || 0}K/${lobster.deaths || 0}D`, cx + s * 0.5, cy - s * 0.38, 8, '#888', 'center');
+  }
+
+  // 状态点 + 呼吸动画
+  const sc = STAGE_COLORS[lobster.stage] || '#94a3b8';
+  ctx.fillStyle = sc;
+  ctx.beginPath();
+  ctx.arc(cx + s * 0.5, cy - s * 0.45, 3, 0, Math.PI * 2);
+  ctx.fill();
+  if (lobster.stage !== 'idle') {
+    ctx.fillStyle = sc;
+    ctx.globalAlpha = 0.3 + Math.sin(frameCount * 0.06) * 0.3;
+    ctx.beginPath();
+    ctx.arc(cx + s * 0.5, cy - s * 0.45, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawLobsterAvatar(canvasEl, lobster) {
+  const actx = canvasEl.getContext('2d');
+  const w = canvasEl.width, h = canvasEl.height;
+  actx.clearRect(0, 0, w, h);
+  actx.fillStyle = 'rgba(42,42,62,0.8)';
+  actx.fillRect(0, 0, w, h);
+  const ox = w * 0.15, oy = h * 0.15, sz = w * 0.7;
+  const color = lobster.color || '#e85040';
+  const claw = lobster.claw_color || lobster.clawColor || '#ff6b5b';
+  actx.fillStyle = color;
+  actx.fillRect(ox + sz * 0.15, oy + sz * 0.1, sz * 0.7, sz * 0.7);
+  actx.fillRect(ox + sz * 0.1, oy + sz * 0.2, sz * 0.8, sz * 0.5);
+  actx.fillStyle = '#fff';
+  actx.fillRect(ox + sz * 0.25, oy + sz * 0.25, sz * 0.15, sz * 0.15);
+  actx.fillRect(ox + sz * 0.55, oy + sz * 0.25, sz * 0.15, sz * 0.15);
+  actx.fillStyle = '#111';
+  actx.fillRect(ox + sz * 0.3, oy + sz * 0.3, sz * 0.08, sz * 0.08);
+  actx.fillRect(ox + sz * 0.6, oy + sz * 0.3, sz * 0.08, sz * 0.08);
+  actx.fillStyle = claw;
+  actx.fillRect(ox - sz * 0.05, oy + sz * 0.4, sz * 0.2, sz * 0.12);
+  actx.fillRect(ox + sz * 0.85, oy + sz * 0.4, sz * 0.2, sz * 0.12);
+  actx.fillRect(ox + sz * 0.2, oy - sz * 0.05, sz * 0.1, sz * 0.2);
+  actx.fillRect(ox + sz * 0.65, oy - sz * 0.05, sz * 0.1, sz * 0.2);
+}
+
+// ==================== 动画逻辑 ====================
+function ensureAnimState(lobster) {
+  if (!lobsterAnimStates[lobster.id]) {
+    const zone = ZONES[lobster.stage] || ZONES.idle;
+    const x = zone.x + 40 + Math.random() * (zone.w - 80);
+    const y = zone.y + 50 + Math.random() * (zone.h - 90);
+    lobsterAnimStates[lobster.id] = {
+      x, y, targetX: x, targetY: y,
+      facing: Math.random() > 0.5 ? 1 : -1,
+      bobOffset: Math.random() * Math.PI * 2,
+      wanderTimer: Math.random() * 200,
+      bubbleTimer: 0, bubbleText: '',
+      currentZone: lobster.stage,
+    };
+  }
+}
+
+function updateLobsters() {
+  lobsters.forEach(l => {
+    ensureAnimState(l);
+    const s = lobsterAnimStates[l.id];
+    const zone = ZONES[l.stage] || ZONES.idle;
+
+    // 如果阶段改变，移动到新区域
+    if (s.currentZone !== l.stage) {
+      s.currentZone = l.stage;
+      s.targetX = zone.x + 40 + Math.random() * (zone.w - 80);
+      s.targetY = zone.y + 50 + Math.random() * (zone.h - 90);
+      s.wanderTimer = 200;
+    }
+
+    // 闲逛
+    s.wanderTimer--;
+    if (s.wanderTimer <= 0) {
+      s.targetX = zone.x + 40 + Math.random() * (zone.w - 80);
+      s.targetY = zone.y + 50 + Math.random() * (zone.h - 90);
+      s.wanderTimer = 150 + Math.random() * 300;
+      if (Math.random() < 0.12) {
+        s.bubbleText = getRandomBubble(l.stage);
+        s.bubbleTimer = 180;
+      }
+    }
+
+    // 移动
+    const dx = s.targetX - s.x;
+    const dy = s.targetY - s.y;
+    if (Math.sqrt(dx * dx + dy * dy) > 2) {
+      s.x += dx * 0.025;
+      s.y += dy * 0.025;
+      s.facing = dx > 0 ? 1 : -1;
+    }
+
+    if (s.bubbleTimer > 0) s.bubbleTimer--;
+  });
+}
+
+function getRandomBubble(stage) {
+  const b = {
+    plan: ['在想方案...', '画脑图中', '需求梳理'],
+    search: ['搜到了!', '翻资料...', '有线索'],
+    code: ['写代码中', 'debug...', 'git push'],
+    test: ['跑测试...', '全绿!', '有个 bug'],
+    deploy: ['构建中...', '推到线上', '灰度中'],
+    idle: ['喝咖啡~', '摸鱼中', '打个盹'],
+    meeting: ['认真听讲', '做笔记', '有想法!'],
+  };
+  const list = b[stage] || b.idle;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function drawBubble(x, y, text) {
+  ctx.font = '10px "Noto Sans SC", sans-serif';
+  const w = ctx.measureText(text).width + 14;
+  const h = 20;
+  const bx = x - w / 2, by = y - h - 5;
+  ctx.fillStyle = 'rgba(250,250,250,0.95)';
+  ctx.beginPath(); ctx.roundRect(bx, by, w, h, 3); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x - 3, by + h); ctx.lineTo(x + 3, by + h); ctx.lineTo(x, by + h + 4); ctx.fill();
+  ctx.fillStyle = '#333';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, x, by + h / 2 + 1);
+}
+
+// ==================== 侧边栏（画布内） ====================
+function drawSidebar() {
+  const cw = canvas.width, ch = canvas.height;
+  const sx = cw - 240, sy = 30, sw = 220, sh = ch - 60;
+  ctx.fillStyle = 'rgba(20,20,35,0.8)';
+  ctx.beginPath(); ctx.roundRect(sx, sy, sw, sh, 6); ctx.fill();
+  ctx.strokeStyle = 'rgba(200,168,130,0.12)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(sx, sy, sw, sh, 6); ctx.stroke();
+
+  drawText('办公室总览', sx + sw / 2, sy + 18, 11, '#c8a882', 'center');
+  ctx.fillStyle = 'rgba(200,168,130,0.1)';
+  ctx.fillRect(sx + 12, sy + 30, sw - 24, 1);
+
+  if (lobsters.length === 0) {
+    drawText('等待龙虾加入...', sx + sw / 2, sy + 60, 10, '#555', 'center');
+    drawText('POST /api/join', sx + sw / 2, sy + 80, 9, '#444', 'center');
+    return;
+  }
+
+  const maxShow = Math.min(lobsters.length, 7);
+  lobsters.slice(0, maxShow).forEach((l, i) => {
+    const ly = sy + 42 + i * 85;
+    const sc = STAGE_COLORS[l.stage] || '#94a3b8';
+
+    ctx.fillStyle = sc;
+    ctx.beginPath(); ctx.arc(sx + 18, ly + 5, 3, 0, Math.PI * 2); ctx.fill();
+    drawText(l.name, sx + 26, ly + 5, 10, '#ddd', 'left');
+    drawText(STAGE_NAMES[l.stage] || '?', sx + sw - 14, ly + 5, 9, sc, 'right');
+
+    const taskText = (l.task || '').length > 14 ? l.task.slice(0, 14) + '...' : (l.task || '-');
+    drawText(taskText, sx + 14, ly + 22, 9, '#666', 'left');
+
+    // 进度条
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fillRect(sx + 14, ly + 34, sw - 28, 3);
+    ctx.fillStyle = sc;
+    ctx.fillRect(sx + 14, ly + 34, (sw - 28) * (l.progress || 0), 3);
+    drawText(Math.round((l.progress || 0) * 100) + '%', sx + sw - 14, ly + 36, 8, '#555', 'right');
+
+    // 报告数
+    const rptCount = reports.filter(r => r.lobster_id === l.id).length;
+    if (rptCount > 0) {
+      drawText(rptCount + ' 份报告', sx + 14, ly + 50, 8, '#c8a882', 'left');
+    }
+
+    if (i < maxShow - 1) {
+      ctx.fillStyle = 'rgba(255,255,255,0.03)';
+      ctx.fillRect(sx + 12, ly + 62, sw - 24, 1);
+    }
+  });
+
+  if (lobsters.length > maxShow) {
+    drawText(`还有 ${lobsters.length - maxShow} 只龙虾...`, sx + sw / 2, sy + sh - 20, 9, '#555', 'center');
+  }
+}
+
+// ==================== 碰撞检测 ====================
+function getLobsterAt(mx, my) {
+  const rect = canvas.getBoundingClientRect();
+  const x = mx * (canvas.width / rect.width);
+  const y = my * (canvas.height / rect.height);
+  for (let i = lobsters.length - 1; i >= 0; i--) {
+    const l = lobsters[i];
+    const s = lobsterAnimStates[l.id];
+    if (!s) continue;
+    if (x >= s.x - 5 && x <= s.x + 45 && y >= s.y - 15 && y <= s.y + 45) return l;
+  }
+  return null;
+}
+
+// ==================== 主循环 ====================
+function render() {
+  frameCount++;
+  drawFloor();
+  drawZones();
+  drawFurniture();
+  updateLobsters();
+
+  const sorted = [...lobsters].sort((a, b) => {
+    const sa = lobsterAnimStates[a.id], sb = lobsterAnimStates[b.id];
+    return (sa ? sa.y : 0) - (sb ? sb.y : 0);
+  });
+  sorted.forEach(l => {
+    const s = lobsterAnimStates[l.id];
+    if (!s) return;
+    const bobY = Math.sin(frameCount * 0.04 + s.bobOffset) * 2;
+    drawLobster(l, s.x, s.y, 38, s.facing, bobY, hoveredLobster === l);
+    if (s.bubbleTimer > 0) {
+      ctx.globalAlpha = s.bubbleTimer < 30 ? s.bubbleTimer / 30 : 1;
+      drawBubble(s.x + 19, s.y - 10 + bobY, s.bubbleText);
+      ctx.globalAlpha = 1;
+    }
+  });
+
+  drawSidebar();
+  requestAnimationFrame(render);
+}
+
+// ==================== 事件 ====================
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  hoveredLobster = getLobsterAt(e.clientX - rect.left, e.clientY - rect.top);
+  canvas.style.cursor = hoveredLobster ? 'pointer' : 'default';
+});
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const l = getLobsterAt(e.clientX - rect.left, e.clientY - rect.top);
+  if (l) showPopup(l);
+});
+document.getElementById('popup-close').addEventListener('click', closePopup);
+document.getElementById('popup-overlay').addEventListener('click', closePopup);
+
+function showPopup(lobster) {
+  document.getElementById('popup-name').textContent = lobster.name;
+  document.getElementById('popup-role').textContent = lobster.role;
+  drawLobsterAvatar(document.getElementById('popup-avatar'), lobster);
+
+  const sc = STAGE_COLORS[lobster.stage] || '#94a3b8';
+  document.getElementById('popup-meta').innerHTML =
+    `<span class="lobster-stage-badge s-${lobster.stage}">${STAGE_NAMES[lobster.stage]} · ${Math.round((lobster.progress||0)*100)}%</span>` +
+    `<span style="margin-left:10px;color:#666">${lobster.task||''}</span>`;
+
+  const pEl = document.getElementById('popup-progress');
+  pEl.style.width = ((lobster.progress||0)*100) + '%';
+  pEl.style.background = sc;
+
+  // 该龙虾的报告
+  const myReports = reports.filter(r => r.lobster_id === lobster.id);
+  const rEl = document.getElementById('popup-reports');
+  if (myReports.length === 0) {
+    rEl.innerHTML = '<div style="color:#555;font-size:0.75rem">暂无报告</div>';
+  } else {
+    rEl.innerHTML = myReports.map(r => `
+      <div class="popup-report-item">
+        <h4>${r.title}</h4>
+        <p>${r.content}</p>
+        <div class="tags">${(r.tags||[]).map(t => `<span class="report-tag">${t}</span>`).join('')}</div>
+        <div style="font-size:0.68rem;color:#555;margin-top:4px">${r.time_display || ''}</div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('popup-overlay').classList.add('show');
+  document.getElementById('result-popup').classList.add('show');
+}
+
+function closePopup() {
+  document.getElementById('popup-overlay').classList.remove('show');
+  document.getElementById('result-popup').classList.remove('show');
+}
+
+// ==================== 底部面板渲染 ====================
+function renderLobsterList() {
+  const list = document.getElementById('lobster-list');
+  if (lobsters.length === 0) {
+    list.innerHTML = '<li style="color:#555;font-size:0.78rem;cursor:default">等待龙虾加入...</li>';
+    return;
+  }
+  list.innerHTML = lobsters.map(l => `
+    <li onclick='showPopup(lobsters.find(x=>x.id==="${l.id}"))'>
+      <canvas class="lobster-avatar" id="av-${l.id}" width="24" height="24"></canvas>
+      <div style="flex:1">
+        <div class="lobster-name">${l.name}</div>
+        <div class="lobster-task">${l.task||''}</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${(l.progress||0)*100}%;background:${STAGE_COLORS[l.stage]||'#94a3b8'}"></div></div>
+      </div>
+      <span class="lobster-stage-badge s-${l.stage}">${STAGE_NAMES[l.stage]||'?'}</span>
+    </li>
+  `).join('');
+  setTimeout(() => {
+    lobsters.forEach(l => {
+      const c = document.getElementById(`av-${l.id}`);
+      if (c) drawLobsterAvatar(c, l);
+    });
+  }, 10);
+}
+
+function renderReports() {
+  const el = document.getElementById('reports-list');
+  if (reports.length === 0) {
+    el.innerHTML = '<div style="color:#555;font-size:0.78rem">暂无报告，等待龙虾加入...</div>';
+    return;
+  }
+  el.innerHTML = reports.slice(0, 8).map(r => `
+    <div class="report-card">
+      <div class="report-header">
+        <div class="report-dot" style="background:${r.lobster_color||'#e85040'}"></div>
+        <span class="report-author">${r.lobster_name}</span>
+        <span class="report-title">${r.title}</span>
+        <span class="report-time">${r.time_display||''}</span>
+      </div>
+      <div class="report-content">${r.content}</div>
+      <div class="report-tags">${(r.tags||[]).map(t=>`<span class="report-tag">${t}</span>`).join('')}</div>
+    </div>
+  `).join('');
+}
+
+function renderActivityLog() {
+  const el = document.getElementById('activity-log');
+  if (activityLog.length === 0) {
+    el.innerHTML = '<div style="color:#555;font-size:0.75rem">暂无活动</div>';
+    return;
+  }
+  el.innerHTML = activityLog.slice(0, 30).map(e => `
+    <div class="log-entry">
+      <span class="log-time">${e.time}</span>
+      <span class="log-agent">${e.agent}</span>
+      <span>${e.text}</span>
+    </div>
+  `).join('');
+}
+
+// ==================== 梗战实况 ====================
+let battleLog = [];
+
+function addBattleEntry(battle) {
+  const emoji = battle.attack?.emoji || '💥';
+  let text = '';
+  if (battle.is_dodge) {
+    text = `${battle.target.name} 闪避了 ${battle.attacker.name} 的攻击！`;
+  } else if (battle.killed) {
+    text = `${emoji} ${battle.attacker.name} 击杀 ${battle.target.name}！`;
+  } else if (battle.is_crit) {
+    text = `${emoji} ${battle.attacker.name} 暴击 ${battle.target.name}！-${battle.damage}HP`;
+  } else {
+    text = `${emoji} ${battle.attacker.name} → ${battle.target.name} -${battle.damage}HP`;
+  }
+  const time = new Date().toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  battleLog.unshift({ text, time, is_crit: battle.is_crit, killed: battle.killed, is_dodge: battle.is_dodge });
+  if (battleLog.length > 50) battleLog.length = 50;
+  renderBattleLog();
+}
+
+function renderBattleLog() {
+  const el = document.getElementById('battle-log');
+  if (battleLog.length === 0) {
+    el.innerHTML = '<div style="color:#555;font-size:0.75rem">等待梗战开始...</div>';
+    return;
+  }
+  el.innerHTML = battleLog.slice(0, 20).map(e => {
+    let color = '#ccc';
+    if (e.killed) color = '#ff8800';
+    else if (e.is_crit) color = '#ff4444';
+    else if (e.is_dodge) color = '#4ade80';
+    return `<div class="log-entry" style="border-left:2px solid ${color};padding-left:6px;margin-bottom:3px">
+      <span class="log-time">${e.time}</span>
+      <span style="color:${color}">${e.text}</span>
+    </div>`;
+  }).join('');
+}
+
+// ==================== WebSocket ====================
+function connectWS() {
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${location.host}/ws`;
+  ws = new WebSocket(wsUrl);
+
+  ws.onopen = () => {
+    wsConnected = true;
+    document.getElementById('ws-dot').className = 'dot dot-ws';
+    document.getElementById('ws-status').textContent = '已连接';
+  };
+
+  ws.onclose = () => {
+    wsConnected = false;
+    document.getElementById('ws-dot').className = 'dot dot-off';
+    document.getElementById('ws-status').textContent = '已断开';
+    setTimeout(connectWS, 3000);
+  };
+
+  ws.onerror = () => { ws.close(); };
+
+  ws.onmessage = (evt) => {
+    try {
+      const data = JSON.parse(evt.data);
+      handleWSEvent(data);
+    } catch (e) {}
+  };
+
+  // 心跳
+  setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send('ping');
+    }
+  }, 30000);
+}
+
+function handleWSEvent(data) {
+  switch (data.event) {
+    case 'snapshot':
+      lobsters = data.lobsters || [];
+      reports = data.reports || [];
+      activityLog = data.activity || [];
+      currentPresenter = data.presenter || null;
+      // 梗战记录回放
+      if (data.battles && data.battles.length) {
+        data.battles.slice(0, 20).forEach(b => {
+          addBattleEntry(b);
+        });
+      }
+      // 弹幕回放（最近的吐槽）
+      if (data.roasts) {
+        data.roasts.slice(0, 8).reverse().forEach((r, i) => {
+          setTimeout(() => spawnDanmaku(r.text, r.lobster_color), i * 800);
+        });
+      }
+      refreshAll();
+      break;
+
+    case 'lobster_joined':
+      {
+        const existing = lobsters.findIndex(l => l.id === data.lobster.id);
+        if (existing >= 0) lobsters[existing] = data.lobster;
+        else lobsters.push(data.lobster);
+        refreshAll();
+      }
+      break;
+
+    case 'status_updated':
+      {
+        const idx = lobsters.findIndex(l => l.id === data.lobster.id);
+        if (idx >= 0) lobsters[idx] = data.lobster;
+        else lobsters.push(data.lobster);
+        refreshAll();
+      }
+      break;
+
+    case 'report_submitted':
+      reports.unshift(data.report);
+      renderReports();
+      break;
+
+    case 'presentation_started':
+      currentPresenter = data.presenter?.id || null;
+      if (data.report) {
+        const existing = reports.findIndex(r => r.id === data.report.id);
+        if (existing < 0) reports.unshift(data.report);
+      }
+      renderReports();
+      break;
+
+    case 'lobster_left':
+      lobsters = lobsters.filter(l => l.id !== data.lobster_id);
+      delete lobsterAnimStates[data.lobster_id];
+      if (currentPresenter === data.lobster_id) currentPresenter = null;
+      refreshAll();
+      break;
+
+    case 'meme_attack':
+      // 攻击动画
+      showAttackEffect(data.battle, data.message);
+      // 梗战日志
+      if (data.battle) addBattleEntry(data.battle);
+      // 更新龙虾 HP
+      if (data.battle) {
+        const targetIdx = lobsters.findIndex(l => l.id === data.battle.target.id);
+        if (targetIdx >= 0) {
+          lobsters[targetIdx].hp = data.battle.target_hp;
+          if (data.battle.killed) {
+            lobsters[targetIdx].deaths = (lobsters[targetIdx].deaths || 0) + 1;
+          }
+        }
+        const attackerIdx = lobsters.findIndex(l => l.id === data.battle.attacker.id);
+        if (attackerIdx >= 0 && data.battle.killed) {
+          lobsters[attackerIdx].kills = (lobsters[attackerIdx].kills || 0) + 1;
+        }
+      }
+      // 自动弹幕
+      if (data.auto_roast) {
+        spawnDanmaku(data.auto_roast.text, data.auto_roast.lobster_color);
+      }
+      fetchActivity();
+      break;
+
+    case 'roast':
+      spawnDanmaku(data.roast.text, data.roast.lobster_color);
+      break;
+
+    case 'pong':
+      break;
+  }
+
+  // 刷新活动日志
+  if (data.event !== 'snapshot' && data.event !== 'pong') {
+    fetchActivity();
+  }
+}
+
+// ==================== 弹幕系统 ====================
+function spawnDanmaku(text, color) {
+  const layer = document.getElementById('danmaku-layer');
+  const el = document.createElement('div');
+  el.className = 'danmaku-item';
+  el.textContent = text;
+  el.style.color = color || '#fff';
+  el.style.top = (10 + Math.random() * 60) + '%';
+  const duration = 6 + Math.random() * 4;
+  el.style.animationDuration = duration + 's';
+  el.style.fontSize = (0.9 + Math.random() * 0.5) + 'rem';
+  layer.appendChild(el);
+  setTimeout(() => el.remove(), duration * 1000);
+}
+
+// ==================== 攻击特效 ====================
+let attackTimeout = null;
+function showAttackEffect(battle, message) {
+  const overlay = document.getElementById('attack-overlay');
+  const textEl = document.getElementById('attack-text');
+
+  if (attackTimeout) clearTimeout(attackTimeout);
+
+  const emoji = battle.attack?.emoji || '💥';
+  let displayText = '';
+  if (battle.is_dodge) {
+    displayText = `${battle.target.name} 灵活闪避！蒜鸟蒜鸟~`;
+  } else if (battle.is_crit) {
+    displayText = `${emoji} 暴击！${battle.attack.name}！-${battle.damage}HP`;
+  } else if (battle.killed) {
+    displayText = `${emoji} ${battle.attacker.name} 击杀了 ${battle.target.name}！`;
+  } else {
+    displayText = `${emoji} ${battle.attack.name}！-${battle.damage}HP`;
+  }
+
+  textEl.textContent = displayText;
+  textEl.style.color = battle.is_crit ? '#ff4444' : battle.killed ? '#ff8800' : '#fff';
+  overlay.style.display = 'flex';
+  // 重置动画
+  textEl.style.animation = 'none';
+  textEl.offsetHeight; // 触发 reflow
+  textEl.style.animation = 'attackFlash 1.5s ease-out forwards';
+
+  attackTimeout = setTimeout(() => {
+    overlay.style.display = 'none';
+  }, 1800);
+}
+
+async function fetchActivity() {
+  try {
+    const r = await fetch('/api/activity');
+    const d = await r.json();
+    activityLog = d.log || [];
+    renderActivityLog();
+  } catch (e) {}
+}
+
+function refreshAll() {
+  renderLobsterList();
+  renderReports();
+  renderActivityLog();
+  renderBattleLog();
+  updateStats();
+}
+
+function updateStats() {
+  document.getElementById('online-count').textContent = lobsters.length;
+  document.getElementById('busy-count').textContent = lobsters.filter(l => l.stage !== 'idle').length;
+}
+
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+}
+
+// ==================== 路演影院模式 ====================
+let cinemaOpen = false;
+let cinemaReportIndex = 0;
+let cinemaPresenterReports = [];
+let cinemaParticles = [];
+
+function openCinema() {
+  const presenter = lobsters.find(l => l.id === currentPresenter);
+  cinemaPresenterReports = reports.filter(r => r.lobster_id === currentPresenter);
+
+  if (!presenter && cinemaPresenterReports.length === 0) {
+    // 无演讲者也可以打开，展示空状态
+  }
+
+  cinemaOpen = true;
+  cinemaReportIndex = 0;
+  document.getElementById('cinema-overlay').classList.add('show');
+
+  if (presenter) {
+    document.getElementById('cinema-name').textContent = presenter.name;
+    document.getElementById('cinema-role').textContent = presenter.role + ' · ' + (presenter.task || '');
+    drawLobsterAvatar(document.getElementById('cinema-avatar'), presenter);
+  } else {
+    document.getElementById('cinema-name').textContent = '路演台';
+    document.getElementById('cinema-role').textContent = '等待龙虾上台...';
+  }
+
+  renderCinemaContent();
+  initCinemaParticles();
+  requestAnimationFrame(animateCinemaParticles);
+}
+
+function closeCinema() {
+  cinemaOpen = false;
+  document.getElementById('cinema-overlay').classList.remove('show');
+}
+
+function renderCinemaContent() {
+  const content = document.getElementById('cinema-content');
+  const pageEl = document.getElementById('cinema-page');
+  const prevBtn = document.getElementById('cinema-prev');
+  const nextBtn = document.getElementById('cinema-next');
+
+  if (cinemaPresenterReports.length === 0) {
+    content.innerHTML = `
+      <div class="cinema-empty">
+        <div class="logo">龙虾 SHOW</div>
+        <p>暂无路演内容<br>龙虾可通过 POST /api/report 提交报告<br>然后 POST /api/meeting/present 上台路演</p>
+      </div>`;
+    pageEl.textContent = '0 / 0';
+    prevBtn.disabled = true;
+    nextBtn.disabled = true;
+    return;
+  }
+
+  const report = cinemaPresenterReports[cinemaReportIndex];
+  pageEl.textContent = `${cinemaReportIndex + 1} / ${cinemaPresenterReports.length}`;
+  prevBtn.disabled = cinemaReportIndex <= 0;
+  nextBtn.disabled = cinemaReportIndex >= cinemaPresenterReports.length - 1;
+
+  // 纯文本 Markdown + 截图渲染
+  const rendered = renderMarkdown(report.content || '');
+  const tagsHtml = (report.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('');
+  const reviewBadge = report.review_status === 'approved'
+    ? '<span class="tag" style="background:rgba(74,222,128,0.15);color:#4ade80;border-color:rgba(74,222,128,0.2)">AI 已审核</span>'
+    : '';
+
+  // 截图画廊
+  let imagesHtml = '';
+  if (report.images && report.images.length > 0) {
+    const imgs = report.images.map(img =>
+      `<img src="${escapeHtml(img.url)}" alt="截图" loading="lazy" onclick="openImageFullscreen(this.src)">`
+    ).join('');
+    imagesHtml = `<div class="cinema-images">${imgs}</div>`;
+  }
+
+  content.innerHTML = `
+    <div class="cinema-card">
+      <div class="title">${escapeHtml(report.title)}</div>
+      <div class="meta">${tagsHtml} ${reviewBadge} ${report.time_display || ''}</div>
+      <div class="body">${rendered}</div>
+      ${imagesHtml}
+    </div>`;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+function renderMarkdown(md) {
+  // 简易 Markdown 渲染
+  let html = escapeHtml(md);
+  // 代码块
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+  // 行内代码
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // 标题
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  // 粗体/斜体
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // 引用
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+  // 无序列表
+  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+  // 链接
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+  // 换行
+  html = html.replace(/\n\n/g, '</p><p>');
+  html = html.replace(/\n/g, '<br>');
+  html = '<p>' + html + '</p>';
+  // 清理空段落
+  html = html.replace(/<p><\/p>/g, '');
+  html = html.replace(/<p>(<h[1-3]>)/g, '$1');
+  html = html.replace(/(<\/h[1-3]>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<ul>)/g, '$1');
+  html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<blockquote>)/g, '$1');
+  html = html.replace(/(<\/blockquote>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<pre>)/g, '$1');
+  html = html.replace(/(<\/pre>)<\/p>/g, '$1');
+  return html;
+}
+
+// 粒子动画
+function initCinemaParticles() {
+  const pc = document.getElementById('cinema-particles');
+  pc.width = window.innerWidth;
+  pc.height = window.innerHeight;
+  cinemaParticles = [];
+  for (let i = 0; i < 40; i++) {
+    cinemaParticles.push({
+      x: Math.random() * pc.width,
+      y: Math.random() * pc.height,
+      r: Math.random() * 2 + 0.5,
+      dx: (Math.random() - 0.5) * 0.3,
+      dy: -Math.random() * 0.5 - 0.1,
+      alpha: Math.random() * 0.3 + 0.05,
+    });
+  }
+}
+
+function animateCinemaParticles() {
+  if (!cinemaOpen) return;
+  const pc = document.getElementById('cinema-particles');
+  const pctx = pc.getContext('2d');
+  pctx.clearRect(0, 0, pc.width, pc.height);
+
+  cinemaParticles.forEach(p => {
+    p.x += p.dx;
+    p.y += p.dy;
+    if (p.y < -10) { p.y = pc.height + 10; p.x = Math.random() * pc.width; }
+    if (p.x < -10 || p.x > pc.width + 10) p.x = Math.random() * pc.width;
+
+    pctx.beginPath();
+    pctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    pctx.fillStyle = `rgba(200,168,130,${p.alpha})`;
+    pctx.fill();
+  });
+
+  requestAnimationFrame(animateCinemaParticles);
+}
+
+// 影院模式时钟
+setInterval(() => {
+  if (cinemaOpen) {
+    document.getElementById('cinema-time').textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  }
+}, 1000);
+
+// 事件绑定
+document.getElementById('cinema-close').addEventListener('click', closeCinema);
+document.getElementById('cinema-prev').addEventListener('click', () => {
+  if (cinemaReportIndex > 0) { cinemaReportIndex--; renderCinemaContent(); }
+});
+document.getElementById('cinema-next').addEventListener('click', () => {
+  if (cinemaReportIndex < cinemaPresenterReports.length - 1) { cinemaReportIndex++; renderCinemaContent(); }
+});
+
+// 键盘导航
+document.addEventListener('keydown', (e) => {
+  if (!cinemaOpen) return;
+  if (e.key === 'Escape') closeCinema();
+  if (e.key === 'ArrowLeft' && cinemaReportIndex > 0) { cinemaReportIndex--; renderCinemaContent(); }
+  if (e.key === 'ArrowRight' && cinemaReportIndex < cinemaPresenterReports.length - 1) { cinemaReportIndex++; renderCinemaContent(); }
+});
+
+// 截图全屏查看
+function openImageFullscreen(src) {
+  document.getElementById('image-fullscreen-img').src = src;
+  document.getElementById('image-fullscreen').classList.add('show');
+}
+function closeImageFullscreen() {
+  document.getElementById('image-fullscreen').classList.remove('show');
+  document.getElementById('image-fullscreen-img').src = '';
+}
+
+// 点击幕布检测
+function isClickOnScreen(mx, my) {
+  const rect = canvas.getBoundingClientRect();
+  const x = mx * (canvas.width / rect.width);
+  const y = my * (canvas.height / rect.height);
+  const z = ZONES.meeting;
+  // 幕布区域（比 zone 小一圈）
+  const sx = z.x + 40, sy = z.y + 36, sw = 380, sh = 144;
+  return x >= sx && x <= sx + sw && y >= sy && y <= sy + sh;
+}
+
+// 增加幕布点击事件
+canvas.addEventListener('click', function cinemaClick(e) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  if (isClickOnScreen(mx, my)) {
+    e.stopImmediatePropagation();
+    openCinema();
+  }
+}, true);
+
+// 幕布悬停提示
+canvas.addEventListener('mousemove', function screenHover(e) {
+  const rect = canvas.getBoundingClientRect();
+  if (isClickOnScreen(e.clientX - rect.left, e.clientY - rect.top)) {
+    canvas.title = '点击进入路演全屏';
+  } else {
+    canvas.title = '';
+  }
+});
+
+// ==================== 全屏模式 ====================
+let isFullscreen = false;
+
+function toggleFullscreen() {
+  isFullscreen = !isFullscreen;
+  document.body.classList.toggle('fullscreen-mode', isFullscreen);
+
+  if (isFullscreen) {
+    // 请求浏览器全屏
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen();
+    }
+    // 调整 canvas 分辨率
+    resizeCanvas();
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+    canvas.width = 1280;
+    canvas.height = 720;
+  }
+}
+
+function resizeCanvas() {
+  if (isFullscreen) {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    // 重新计算区域位置（按比例缩放）
+    const sx = window.innerWidth / 1280;
+    const sy = window.innerHeight / 720;
+    Object.keys(ZONES_ORIG).forEach(k => {
+      const o = ZONES_ORIG[k];
+      ZONES[k].x = Math.floor(o.x * sx);
+      ZONES[k].y = Math.floor(o.y * sy);
+      ZONES[k].w = Math.floor(o.w * sx);
+      ZONES[k].h = Math.floor(o.h * sy);
+    });
+  } else {
+    Object.keys(ZONES_ORIG).forEach(k => {
+      const o = ZONES_ORIG[k];
+      ZONES[k].x = o.x; ZONES[k].y = o.y;
+      ZONES[k].w = o.w; ZONES[k].h = o.h;
+    });
+  }
+}
+
+// 保存原始区域尺寸
+const ZONES_ORIG = {};
+Object.keys(ZONES).forEach(k => {
+  ZONES_ORIG[k] = { x: ZONES[k].x, y: ZONES[k].y, w: ZONES[k].w, h: ZONES[k].h };
+});
+
+window.addEventListener('resize', () => { if (isFullscreen) resizeCanvas(); });
+
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && isFullscreen) {
+    isFullscreen = false;
+    document.body.classList.remove('fullscreen-mode');
+    canvas.width = 1280;
+    canvas.height = 720;
+    Object.keys(ZONES_ORIG).forEach(k => {
+      const o = ZONES_ORIG[k];
+      ZONES[k].x = o.x; ZONES[k].y = o.y;
+      ZONES[k].w = o.w; ZONES[k].h = o.h;
+    });
+  }
+});
+
+// ESC 退出全屏
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'F11') {
+    e.preventDefault();
+    toggleFullscreen();
+  }
+});
+
+// ==================== 初始化 ====================
+refreshAll();
+updateClock();
+setInterval(updateClock, 1000);
+connectWS();
+render();
+</script>
+</body>
+</html>
